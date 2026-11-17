@@ -8,7 +8,21 @@ use CodeIgniter\HTTP\ResponseInterface;
 
 class UmkmController extends ResourceController
 {
+    private array $fields = ['nama_umkm', 'pemilik', 'alamat', 'kategori', 'kontak'];
 
+    // GET api/umkm : ambil semua data
+    public function index(): ResponseInterface
+    {
+        $model = new UmkmModel();
+
+        return $this->respond([
+            'success' => true,
+            'message' => 'Data UMKM berhasil diambil',
+            'data'    => $model->findAll(),
+        ], 200);
+    }
+
+    // GET api/umkm/{id} : ambil satu data
     public function show($id = null): ResponseInterface
     {
         $model = new UmkmModel();
@@ -25,16 +39,6 @@ class UmkmController extends ResourceController
             'success' => true,
             'message' => 'Data UMKM berhasil diambil',
             'data'    => $data,
-        ], 200);
-    }
-    public function index(): ResponseInterface
-    {
-        $model = new UmkmModel();
-
-        return $this->respond([
-            'success' => true,
-            'message' => 'Data UMKM berhasil diambil',
-            'data'    => $model->findAll(),
         ], 200);
     }
 
@@ -90,7 +94,23 @@ class UmkmController extends ResourceController
             ], 404);
         }
 
-        $data = $this->request->getRawInput();
+        // Baca body: x-www-form-urlencoded, atau JSON bila kosong
+        $input = $this->request->getRawInput();
+        if (empty($input)) {
+            $json = $this->request->getJSON(true);
+            $input = is_array($json) ? $json : [];
+        }
+
+        // Ambil hanya kolom yang diizinkan
+        $data = array_intersect_key($input, array_flip($this->fields));
+
+        if (empty($data)) {
+            return $this->respond([
+                'success' => false,
+                'message' => 'Tidak ada data yang dikirim untuk diubah',
+            ], 400);
+        }
+
         $model->update($id, $data);
 
         return $this->respond([
